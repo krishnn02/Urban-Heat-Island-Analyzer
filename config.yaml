@@ -1,0 +1,35 @@
+project:
+  name: urban_heat_island_ai
+  version: 2.0
+  type: multimodal_analysis
+
+data:
+  mode: mock # Using mock data as requested
+  satellite_source: sentinel_2
+  temperature_source: modis_lst
+  spatial_resolution: 100m
+  grid_size: 100 # 100x100 grid for mock data
+  center_lat: 40.7128 # Example: NYC
+  center_lon: -74.0060
+
+model:
+  vegetation:
+    method: ndvi_precomputed # Using MVP approach
+    baseline: ndvi
+
+analysis:
+  correlation:
+    method: pearson
+  regression:
+    type: linear_regression
+
+heat_detection:
+  thresholds:
+    ndvi_low: 0.3
+    temp_high: 35
+  scoring_method: weighted_index
+
+insight_generation:
+  enable_recommendations: true
+  simulate_tree_increase: true
+  output_statements: true
