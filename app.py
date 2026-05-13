@@ -274,7 +274,22 @@ st.markdown("""
     /* Hide standard Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
+    /* header {visibility: hidden;} - Removed to keep sidebar toggle visible */
+    
+    /* Enhanced Sidebar Toggle Visibility */
+    [data-testid="stSidebarCollapseButton"] {
+        background-color: var(--primary);
+        color: white !important;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        padding: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    [data-testid="stSidebarCollapseButton"]:hover {
+        transform: scale(1.1);
+        background-color: var(--secondary);
+    }
 
 </style>
 """, unsafe_allow_html=True)
@@ -316,6 +331,7 @@ with st.sidebar:
         <h2 style="margin-bottom: 5px; color: #1d3557; font-weight: 800; font-size: 1.6rem; letter-spacing: -0.5px;">🌍 UHI Analyzer</h2>
         <div style="height: 3px; width: 40px; background: #2a9d8f; margin: 10px auto; border-radius: 2px;"></div>
         <p style="color: #457b9d; font-size: 0.95rem; font-weight: 500; margin-bottom: 0; opacity: 0.8;">Urban Intelligence Engine</p>
+        <p style="color: #888; font-size: 0.7rem; margin-top: 10px;">Tip: Use the arrow at the top to collapse/expand menu</p>
     </div>
     """, unsafe_allow_html=True)
     
