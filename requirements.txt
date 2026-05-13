@@ -18,3 +18,6 @@ pystac-client>=0.7.5
 odc-stac>=0.3.8
 xarray>=2023.10.0
 dask>=2023.10.0
+planetary-computer>=1.0.0
+rioxarray>=0.15.1
+pyproj>=3.6.1

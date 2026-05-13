@@ -129,7 +129,11 @@ def extract_real_data(lat, lon, radius_km=5, date_start='2023-04-01', date_end='
         else:
             s2_load_params["resolution"] = resolution # Use optimized resolution
             
-        s2_data = stac_load(**s2_load_params)
+        try:
+            s2_data = stac_load(**s2_load_params)
+        except Exception as e:
+            logger.error(f"Failed to load Sentinel-2 data: {e}")
+            return None
         
         # Calculate median over time (Lazy)
         s2_median = s2_data.median(dim="time")
@@ -174,12 +178,16 @@ def extract_real_data(lat, lon, radius_km=5, date_start='2023-04-01', date_end='
         ls_items = [planetary_computer.sign(item) for item in ls_items]
         
         # Load Landsat thermal data (lwir11 is band 10 in Landsat 8/9 ST)
-        ls_data = stac_load(
-            ls_items,
-            bands=["lwir11"],
-            like=s2_median, # This aligns the grids perfectly!
-            chunks={"x": 2048, "y": 2048, "time": 1}
-        )
+        try:
+            ls_data = stac_load(
+                ls_items,
+                bands=["lwir11"],
+                like=s2_median, # This aligns the grids perfectly!
+                chunks={"x": 2048, "y": 2048, "time": 1}
+            )
+        except Exception as e:
+            logger.error(f"Failed to load Landsat data: {e}")
+            return None
         
         ls_median = ls_data.median(dim="time")
         

@@ -85,32 +85,38 @@ def geocode_city(city_name):
 def load_data(lat, lon, radius=2, resolution=60):
     try:
         # 1. Extraction from STAC
-        with st.status("Fetching and processing satellite data...") as status:
-            # Use the same logic as stac_extractor to check for cache
-
+        progress_bar = st.progress(0, text="Initializing satellite connection...")
+        
+        with st.status("📡 Fetching and processing satellite data...", expanded=True) as status:
             date_start, date_end = '2023-04-01', '2023-05-31'
             cache_path = get_cache_path(lat, lon, radius, resolution, date_start, date_end)
             
             if os.path.exists(cache_path):
-                st.write("📂 Found data in local cache. Loading...")
+                status.write("📂 Found data in local cache. Loading...")
+                progress_bar.progress(50, text="Loading from cache...")
             else:
-                st.write("📡 Connecting to Microsoft Planetary Computer...")
-                st.write("⏳ This may take a minute for new regions...")
+                status.write("📡 Connecting to Microsoft Planetary Computer...")
+                status.write("⏳ This may take a minute for new regions...")
+                progress_bar.progress(20, text="Connecting to STAC API...")
                 
             real_df = extract_real_data(lat, lon, radius_km=radius, resolution=resolution)
             
             if real_df is not None and len(real_df) > 0:
-                st.write("🧹 Cleaning and normalizing data...")
+                progress_bar.progress(60, text="Cleaning and normalizing data...")
+                status.write("🧹 Cleaning and normalizing data...")
                 real_df = process_for_modeling(real_df)
                 
-                st.write("📊 Calculating heat risk zones...")
+                progress_bar.progress(80, text="Calculating heat risk zones...")
+                status.write("📊 Calculating heat risk zones...")
                 real_df = calculate_heat_risk_score(real_df, config)
                 
                 # Downsample for dashboard performance if needed
                 if len(real_df) > 10000:
+                    status.write("🚀 Optimizing for dashboard performance...")
                     real_df = real_df.sample(10000, random_state=42)
                 
-                status.update(label="Data successfully loaded!", state="complete", expanded=False)
+                progress_bar.progress(100, text="Analysis Complete!")
+                status.update(label="✅ Data successfully loaded!", state="complete", expanded=False)
                 st.session_state['is_simulated'] = False
                 
                 # Concurrency-safe cache save (only if not exists)
@@ -123,10 +129,11 @@ def load_data(lat, lon, radius=2, resolution=60):
                 return real_df
 
             else:
-                st.warning("No satellite imagery found for this region/date.")
+                status.update(label="❌ No imagery found.", state="error")
+                st.warning("No satellite imagery found for this region/date. Try a different location or radius.")
     except Exception as e:
         st.error(f"🛰️ Satellite Connection Error: {e}")
-        st.info("This often happens due to temporary network issues or API rate limits.")
+        st.info("💡 **Troubleshooting:** This often happens due to temporary network issues or API rate limits. Please try again in a few seconds.")
         if st.button("🔄 Retry Connection"):
             st.rerun()
         st.stop()
@@ -136,130 +143,139 @@ def load_data(lat, lon, radius=2, resolution=60):
 # Modern Premium CSS Injection
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
     
+    :root {
+        --primary: #2a9d8f;
+        --secondary: #264653;
+        --accent: #e9c46a;
+        --danger: #e76f51;
+        --bg-glass: rgba(255, 255, 255, 0.85);
+    }
+
     html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Outfit', sans-serif;
     }
     
     .main-header {
-        background: linear-gradient(135deg, #2a9d8f 0%, #264653 100%);
-        padding: 3rem;
-        border-radius: 15px;
+        background: linear-gradient(135deg, #1d3557 0%, #457b9d 100%);
+        padding: 4rem 2rem;
+        border-radius: 24px;
         color: white;
         text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        margin-bottom: 3rem;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         position: relative;
         overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
     }
+    
     .main-header::before {
-        content: '🌍';
+        content: '';
         position: absolute;
-        font-size: 12rem;
-        opacity: 0.1;
-        top: -30px;
-        right: 5%;
-        transform: rotate(15deg);
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+        animation: rotate 20s linear infinite;
+        z-index: 0;
     }
-    .main-header::after {
-        content: '🌿';
-        position: absolute;
-        font-size: 10rem;
-        opacity: 0.1;
-        bottom: -20px;
-        left: 5%;
-        transform: rotate(-15deg);
+    
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
+
     .main-header h1 {
-        font-family: 'Inter', sans-serif;
         font-weight: 800;
-        margin-bottom: 1rem;
-        font-size: 3.2rem;
+        margin-bottom: 1.5rem;
+        font-size: 4rem;
         color: #ffffff !important;
-        text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
-        padding: 0;
+        text-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        z-index: 1;
+        position: relative;
+        letter-spacing: -1px;
     }
+    
     .main-header p {
-        font-size: 1.25rem;
-        opacity: 0.95;
-        font-weight: 400;
-        margin-bottom: 0;
-        max-width: 800px;
-        margin-left: auto;
-        margin-right: auto;
+        font-size: 1.4rem;
+        opacity: 0.9;
+        font-weight: 300;
+        max-width: 900px;
+        margin: 0 auto;
         line-height: 1.6;
-    }
-    /* Hide default Streamlit top margin */
-    .block-container {
-        padding-top: 2rem !important;
+        z-index: 1;
+        position: relative;
     }
 
-    /* Sidebar Enhanced UI */
+    /* Glassmorphism Cards */
+    .stMetric, .insight-box, .metric-container {
+        background: var(--bg-glass) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        border-radius: 20px !important;
+        padding: 24px !important;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .metric-container:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 15px 45px rgba(31, 38, 135, 0.12) !important;
+    }
+
+    /* Sidebar Styling */
     [data-testid="stSidebar"] {
-        background-color: #f4f7f6;
-        border-right: 1px solid #e0e5e5;
+        background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+        border-right: 1px solid rgba(0,0,0,0.05);
     }
-    [data-testid="stSidebar"] .stRadio > div {
-        gap: 12px;
-        padding-top: 10px;
-    }
-    [data-testid="stSidebar"] .stRadio label {
-        padding: 12px 15px;
-        background-color: #ffffff;
-        border-radius: 10px;
-        border: 1px solid #e0e5e5;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        cursor: pointer;
-        width: 100%;
-    }
-    [data-testid="stSidebar"] .stRadio label:hover {
-        border-color: #2a9d8f;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(42, 157, 143, 0.15);
-    }
-    /* Hide the default radio circle */
-    [data-testid="stSidebar"] .stRadio label > div:first-child {
-        display: none;
-    }
-    /* Text styling */
-    [data-testid="stSidebar"] .stRadio label p {
-        font-weight: 600 !important;
-        color: #264653 !important;
-        font-size: 1.05rem !important;
-        margin: 0 !important;
-    }
-    /* Checked state styling */
-    [data-testid="stSidebar"] .stRadio label:has(input:checked) {
-        background: linear-gradient(135deg, #2a9d8f 0%, #264653 100%);
-        border: none;
-        box-shadow: 0 4px 10px rgba(42, 157, 143, 0.3);
-    }
-    [data-testid="stSidebar"] .stRadio label:has(input:checked) p {
-        color: #ffffff !important;
+    
+    [data-testid="stSidebarNav"] {
+        background: transparent;
     }
 
-    /* Mobile Responsiveness */
-    @media (max-width: 768px) {
-        .main-header {
-            padding: 1.5rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-        .main-header h1 {
-            font-size: 1.8rem !important;
-        }
-        .main-header p {
-            font-size: 1rem !important;
-            line-height: 1.4 !important;
-        }
-        .main-header::before, .main-header::after {
-            display: none !important; /* Hide large decorative emojis to save space */
-        }
-        .metric-container, .insight-box {
-            padding: 15px !important;
-        }
+    /* Custom Radio Buttons */
+    [data-testid="stSidebar"] .stRadio label {
+        padding: 15px 20px;
+        background: white;
+        border-radius: 15px;
+        margin-bottom: 10px;
+        border: 1px solid transparent;
+        transition: 0.2s;
     }
+    
+    [data-testid="stSidebar"] .stRadio label:hover {
+        border-color: var(--primary);
+        background: #f0fdfa;
+    }
+
+    /* Tabs Decoration */
+    .stTabs [data-baseweb="tab-list"] {
+        background: #f1f5f9;
+        padding: 8px;
+        border-radius: 16px;
+        gap: 10px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 12px;
+        background: transparent;
+        border: none;
+        color: #64748b;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: white !important;
+        color: var(--primary) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    /* Hide standard Streamlit elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -296,9 +312,10 @@ with col_loc1:
 
 with st.sidebar:
     st.markdown("""
-    <div style="text-align: center; margin-bottom: 20px; padding: 15px 10px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e0e5e5;">
-        <h2 style="margin-bottom: 5px; color: #264653; font-weight: 800; font-size: 1.4rem;">🔬 UHI Analyzer</h2>
-        <p style="color: #2a9d8f; font-size: 0.9rem; font-weight: 600; margin-bottom: 0;">Scientific Urban Data Tool</p>
+    <div style="text-align: center; margin-bottom: 25px; padding: 25px 15px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05);">
+        <h2 style="margin-bottom: 5px; color: #1d3557; font-weight: 800; font-size: 1.6rem; letter-spacing: -0.5px;">🌍 UHI Analyzer</h2>
+        <div style="height: 3px; width: 40px; background: #2a9d8f; margin: 10px auto; border-radius: 2px;"></div>
+        <p style="color: #457b9d; font-size: 0.95rem; font-weight: 500; margin-bottom: 0; opacity: 0.8;">Urban Intelligence Engine</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -464,19 +481,19 @@ insights = get_spatial_insights(df)
 
 if insights:
     with col_d1:
-        st.markdown('<div class="metric-container" style="border-left-color: #ef476f;">', unsafe_allow_html=True)
-        st.metric(label="Avg Surface Temp", value=f"{df['land_surface_temperature'].mean():.1f}°C")
+        st.markdown('<div class="metric-container" style="border-top: 5px solid #e76f51;">', unsafe_allow_html=True)
+        st.metric(label="🌡️ Avg Surface Temp", value=f"{df['land_surface_temperature'].mean():.1f}°C")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_d2:
-        st.markdown('<div class="metric-container" style="border-left-color: #06d6a0;">', unsafe_allow_html=True)
-        st.metric(label="Cooling Dividend", value=f"{insights['cooling_dividend']:.1f}°C", help="Temperature difference between high-vegetation and low-vegetation areas.")
+        st.markdown('<div class="metric-container" style="border-top: 5px solid #2a9d8f;">', unsafe_allow_html=True)
+        st.metric(label="❄️ Cooling Dividend", value=f"{insights['cooling_dividend']:.1f}°C", help="Temperature difference between high-vegetation and low-vegetation areas.")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_d3:
-        st.markdown('<div class="metric-container" style="border-left-color: #118ab2;">', unsafe_allow_html=True)
+        st.markdown('<div class="metric-container" style="border-top: 5px solid #457b9d;">', unsafe_allow_html=True)
         blue_val = insights.get('blue_cooling_index', 0.0)
-        st.metric(label="Blue Cooling Index", value=f"{blue_val:.1f}°C", help="Temperature reduction benefit provided by water bodies and blue spaces.")
+        st.metric(label="💧 Blue Cooling Index", value=f"{blue_val:.1f}°C", help="Temperature reduction benefit provided by water bodies.")
         st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.warning("Spatial insights could not be calculated for this dataset.")
